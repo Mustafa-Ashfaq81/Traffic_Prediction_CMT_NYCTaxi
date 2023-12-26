@@ -1,3 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 checkpoint.pth filter=lfs diff=lfs merge=lfs -text
+Temporal_Master_Grid_NYC30x30(60_min_resolution) filter=lfs diff=lfs merge=lfs -text
+Temporal_Master_Grid_NYC30x30(60_min_resolution).npy filter=lfs diff=lfs merge=lfs -text
