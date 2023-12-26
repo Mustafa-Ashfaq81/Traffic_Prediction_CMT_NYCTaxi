@@ -1,0 +1,14 @@
+local_image_size_x = 30
+local_image_size_y = 30
+cnn_hidden_dim_first = 32
+hidden_dim = 512
+TIMESTEP_OUR = 4
+Prediction_TIMESTEP = 1
+feature_len = 38
+BATCHSIZE = 128
+LOSS = 'mse'
+OPTIMIZER = 'adam'
+EPOCH = 2
+LEARN = 5e-06 #0.001
+WEIGHT_DECAY = 1e-5
+trainRatio = 0.8
