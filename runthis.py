@@ -146,7 +146,7 @@ def main(train=True):
     train_loader = DataLoader(
         train_dataset, batch_size=BATCHSIZE, shuffle=True)
     
-    checkpoint_interval = 1  # Save state of model after every epoch
+    checkpoint_interval = 30  # Save state of model after every 30 epochs
     if train:
         progress_bar = tqdm(range(EPOCH), ncols=100, position=0)
         for epoch in progress_bar:
