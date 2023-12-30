@@ -159,7 +159,7 @@ class Patch_Aggregate(nn.Module):
     """
     def __init__(self, in_channels, out_channels = None):
         pad = 0
-        if out_channels == 512:
+        if out_channels == 368//2:
             pad = 1
         # print(f"In_channels: {in_channels}, Out_channels: {out_channels}")
         super(Patch_Aggregate, self).__init__()

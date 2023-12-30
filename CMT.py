@@ -92,7 +92,7 @@ class CMT(nn.Module):
 
         # FC
         self.fc = nn.Sequential(
-            nn.Linear(512, 1280),
+            nn.Linear(368//2, 1280),
             # nn.ReLU(inplace = True),
         )
 
@@ -174,11 +174,11 @@ class CMT(nn.Module):
 
 def CMT_Ti(img_size = 224, num_class = 1000):
     model = CMT(
-        in_channels = 3,
-        stem_channel = 16,
-        cmt_channel = [46, 92, 184, 368],
-        patch_channel = [46, 92, 184, 368],
-        block_layer = [2, 2, 10, 2],
+        in_channels = 4,
+        stem_channel = 16//2,
+        cmt_channel = [46//2, 92//2, 184//2, 368//2],
+        patch_channel = [46//2, 92//2, 184//2, 368//2],
+        block_layer = [2, 2, 10//2, 2],
         R = 3.6,
         img_size = img_size,
         num_class = num_class
@@ -188,7 +188,7 @@ def CMT_Ti(img_size = 224, num_class = 1000):
 
 def CMT_XS(img_size = 224, num_class = 1000):
     model = CMT(
-        in_channels = 3,
+        in_channels = 4,
         stem_channel = 16,
         cmt_channel = [52, 104, 208, 416],
         patch_channel = [52, 104, 208, 416],
@@ -212,7 +212,7 @@ def CMT_S(img_size = 224, num_class = 10):
     )
     return model
 
-def CMT_B(img_size = 224, num_class = 1000):
+def CMT_B(img_size = 224, num_class = 10):
     model = CMT(
         in_channels = 4,
         stem_channel = 38,
