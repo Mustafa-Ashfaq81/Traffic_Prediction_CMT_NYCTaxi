@@ -8,10 +8,8 @@ class Conv2x2(nn.Module):
     """
     def __init__(self, in_channels, out_channels, stride = 1, padding = 0):
         super(Conv2x2, self).__init__()
-        # print(f"Padding: {padding}")
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size = 2,
-            stride = stride, padding = padding, bias = True
-        )
+            stride = stride, padding = padding, bias = True)
 
     def forward(self, x):
         result = self.conv(x)
@@ -25,8 +23,7 @@ class DWCONV(nn.Module):
     def __init__(self, in_channels, out_channels, stride = 1):
         super(DWCONV, self).__init__()
         self.depthwise = nn.Conv2d(in_channels, out_channels, kernel_size = 3,
-            stride = stride, padding = 1, groups = in_channels, bias = True
-        )
+            stride = stride, padding = 1, groups = in_channels, bias = True)
 
     def forward(self, x):
         result = self.depthwise(x)
@@ -83,7 +80,6 @@ class LMHSA(nn.Module):
 
         # Reshape
         x_reshape = x.view(b, c, h * w).permute(0, 2, 1)
-        # x_reshape = nn.LayerNorm(c).cuda()(x_reshape)
         x_reshape = torch.nn.functional.layer_norm(x_reshape, (b, h * w, c))
 
         # Get q, k, v
@@ -140,7 +136,6 @@ class IRFFN(nn.Module):
 
     def forward(self, x):
         result = x + self.conv2(self.dwconv(self.conv1(x)))
-        # result = x + self.conv2(self.conv1(x))
         return result
 
 
@@ -160,14 +155,13 @@ class Patch_Aggregate(nn.Module):
     """
     def __init__(self, in_channels, out_channels = None):
         pad = 0
-        if out_channels == 512:
+        if out_channels == 368//2:
             pad = 1
         # print(f"In_channels: {in_channels}, Out_channels: {out_channels}")
         super(Patch_Aggregate, self).__init__()
         if out_channels is None:
             out_channels = in_channels
-        self.conv = Conv2x2(in_channels, out_channels, stride = 2, padding = pad) #nn.Conv2d(in_channels, out_channels, kernel_size = kernel_s,
-            #stride = 2, padding = 0, bias = True) 
+        self.conv = Conv2x2(in_channels, out_channels, stride = 2, padding = pad)
         self.init_weight()
 
     def init_weight(self):

@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from cmt_module import CMTStem, Patch_Aggregate, CMTBlock
 from Param_Our import *
-from typing import List, Optional
-from tqdm import tqdm
 
 class CMT(nn.Module):
     def __init__(self,
@@ -92,7 +90,7 @@ class CMT(nn.Module):
 
         # FC
         self.fc = nn.Sequential(
-            nn.Linear(512, 1280),
+            nn.Linear(368, 1280),
             # nn.ReLU(inplace = True),
         )
 
@@ -155,30 +153,16 @@ class CMT(nn.Module):
         logit = self.regression(x)
         # print("Shape after final regression:", logit.shape)
 
-        size_for_reshape = Prediction_TIMESTEP * local_image_size_x * local_image_size_y
-        logit = logit.view(-1, size_for_reshape)
-        # print(f"Shape after reshape: {logit.shape}")
-
-        # Apply Linear transformation equivalent to Dense layer
-        linear = nn.Linear(size_for_reshape, Prediction_TIMESTEP * local_image_size_x * local_image_size_y)(logit)
-        # print(f"Shape after Linear/Dense layer: {linear.shape}")
-
-        # Reshape the tensor
-        res = linear.view(-1, Prediction_TIMESTEP, local_image_size_x, local_image_size_y)
-        # print(f"Final Reshape: {res.shape}")
-
-        # Add a new dimension
-        res = res.unsqueeze(1)
-        return res
+        return logit
 
 
 def CMT_Ti(img_size = 224, num_class = 1000):
     model = CMT(
         in_channels = 4,
-        stem_channel = 16//2,
-        cmt_channel = [46//2, 92//2, 184//2, 368//2],
-        patch_channel = [46//2, 92//2, 184//2, 368//2],
-        block_layer = [2, 2, 10//2, 2],
+        stem_channel = 16,
+        cmt_channel = [46, 92, 184, 368],
+        patch_channel = [46, 92, 184, 368],
+        block_layer = [2, 2, 10, 2],
         R = 3.6,
         img_size = img_size,
         num_class = num_class
@@ -240,13 +224,11 @@ def test():
     print(f"CMT_X  param: {calc_param(cmt_x) / 1e6 : .2f} M")
     print(f"CMT_B  param: {calc_param(cmt_b) / 1e6 : .2f} M")
 
-# if __name__ == "__main__":
-#     x = torch.randn(2, 4, 30, 30) #(B,C,H,W)
-#     # print(x)
-#     model = CMT_S()
-
-#     # print(model)
-#     print("---------------------------")
-#     print()
-#     out = model(x)
-#     print(f"Final shape of output: {out.shape}")
+if __name__ == "__main__":
+    x = torch.randn(2, 4, 30, 30) #(B,C,H,W)
+    model = CMT_S()
+    # print(model)
+    print("---------------------------")
+    print()
+    out = model(x)
+    print(f"Final shape of output: {out.shape}")
