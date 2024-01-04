@@ -129,10 +129,10 @@ def main(train=True):
     print("True values Validation shape:  ", val_y.shape)
     print("-"*100)
 
-    model = CMT.CMT_Ti()
+    model = CMT.CMT_S()
     optimizer = optim.Adam(model.parameters(), lr=LEARN, weight_decay=WEIGHT_DECAY)
     criterion = torch.nn.MSELoss()
-    scheduler = StepLR(optimizer, step_size=20, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=25, gamma=0.1)
 
     # Convert data to PyTorch tensors
     trainx_1_tensor = torch.tensor(trainx_1, dtype=torch.float32)

@@ -1,3 +1,5 @@
+from einops import rearrange
+
 import torch
 import torch.nn as nn
 
@@ -6,11 +8,10 @@ class Conv2x2(nn.Module):
     """
     2x2 Convolution
     """
-    def __init__(self, in_channels, out_channels, stride = 1, padding = 0):
+    def __init__(self, in_channels, out_channels, stride = 1):
         super(Conv2x2, self).__init__()
-        # print(f"Padding: {padding}")
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size = 2,
-            stride = stride, padding = padding, bias = True
+            stride = stride, padding = 0, bias = True
         )
 
     def forward(self, x):
@@ -104,7 +105,7 @@ class LMHSA(nn.Module):
 
         # Attention
         attn = torch.einsum('... i d, ... j d -> ... i j', q, k) * self.scaled_factor
-        # attn = attn + self.B
+        attn = attn + self.B
         attn = torch.softmax(attn, dim = -1) # [b, heads, h * w, k_h * k_w]
 
         result = torch.matmul(attn, v).permute(0, 2, 1, 3)
@@ -140,7 +141,6 @@ class IRFFN(nn.Module):
 
     def forward(self, x):
         result = x + self.conv2(self.dwconv(self.conv1(x)))
-        # result = x + self.conv2(self.conv1(x))
         return result
 
 
@@ -159,15 +159,10 @@ class Patch_Aggregate(nn.Module):
         - x: (B, Out_C, H / 2, W / 2)
     """
     def __init__(self, in_channels, out_channels = None):
-        pad = 0
-        if out_channels == 512:
-            pad = 1
-        # print(f"In_channels: {in_channels}, Out_channels: {out_channels}")
         super(Patch_Aggregate, self).__init__()
         if out_channels is None:
             out_channels = in_channels
-        self.conv = Conv2x2(in_channels, out_channels, stride = 2, padding = pad) #nn.Conv2d(in_channels, out_channels, kernel_size = kernel_s,
-            #stride = 2, padding = 0, bias = True) 
+        self.conv = Conv2x2(in_channels, out_channels, stride = 2)
         self.init_weight()
 
     def init_weight(self):

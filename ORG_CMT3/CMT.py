@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
+
 from cmt_module import CMTStem, Patch_Aggregate, CMTBlock
-from Param_Our import *
-from typing import List, Optional
-from tqdm import tqdm
+
 
 class CMT(nn.Module):
     def __init__(self,
@@ -92,93 +91,59 @@ class CMT(nn.Module):
 
         # FC
         self.fc = nn.Sequential(
-            nn.Linear(512, 1280),
-            # nn.ReLU(inplace = True),
+            nn.Linear(64, 1280),
+            nn.ReLU(inplace = True),
         )
 
-        # Final Regression Layer
-        self.regression = nn.Linear(1280, Prediction_TIMESTEP * local_image_size_x * local_image_size_y)
-
-
+        # Final Classifier
+        self.classifier = nn.Linear(1280, num_class)
 
 
     def forward(self, x):
-        # print(f"\nShape before STEM: {x.shape}")
+        print(f"Shape before STEM: {x.shape}")
         x = self.stem(x)
-        # print(f"Shape after STEM: {x.shape}")
-        # print()
+        print(f"Shape after STEM: {x.shape}")
+        print()
 
-        # print(f"Shape before Patch-Aggregation 1: {x.shape}")
+        print(f"Shape before Patch-Aggregation 1: {x.shape}")
         x = self.patch1(x)
-        # print(f"Shape after Patch-Aggregation 1: {x.shape}")
-        # print()
-        # print(f"Shape before Block 1: {x.shape}")
+        print(f"Shape after Patch-Aggregation 1: {x.shape}")
+        print()
+        print(f"Shape before Block 1: {x.shape}")
         x = self.stage1(x)
-        # print(f"Shape after Block 1: {x.shape}")
+        print(f"Shape after Block 1: {x.shape}")
 
-        # print(f"Shape before Patch-Aggregation 2: {x.shape}")
         x = self.patch2(x)
-        # print(f"Shape after Patch-Aggregation 2: {x.shape}")
-        # print()
-
-        # print(f"Shape before Block 2: {x.shape}")
         x = self.stage2(x)
-        # print(f"Shape after Block 2: {x.shape}")
 
-        # print(f"Shape before Patch-Aggregation 3: {x.shape}")
         x = self.patch3(x)
-        # print(f"Shape after Patch-Aggregation 3: {x.shape}")
-        # print()
-
-        # print(f"Shape before Block 3: {x.shape}")
         x = self.stage3(x)
-        # print(f"Shape after Block 3: {x.shape}")
 
-        # print(f"Shape before Patch-Aggregation 4: {x.shape}")
         x = self.patch4(x)
-        # print(f"Shape after Patch-Aggregation 4: {x.shape}")
-        # print()
-
-        # print(f"Shape before Block 4: {x.shape}")
         x = self.stage4(x)
-        # print(f"Shape after Block 4: {x.shape}")
         
-        # print(f"Shape before avg pool: {x.shape}")
+        print(f"Shape before avg pool: {x.shape}")
         x = self.avg_pool(x)
-        # print(f"Shape after avg pool: {x.shape}")
+        print(f"Shape after avg pool: {x.shape}")
         x = torch.flatten(x, 1)
-        # print(f"Shape after flatten: {x.shape}")
+        print(f"Shape after flatten: {x.shape}")
 
         x = self.fc(x)
-        # print(f"Shape after fc: {x.shape}")
-        # print()
-        logit = self.regression(x)
-        # print("Shape after final regression:", logit.shape)
-
-        size_for_reshape = Prediction_TIMESTEP * local_image_size_x * local_image_size_y
-        logit = logit.view(-1, size_for_reshape)
-        # print(f"Shape after reshape: {logit.shape}")
-
-        # Apply Linear transformation equivalent to Dense layer
-        linear = nn.Linear(size_for_reshape, Prediction_TIMESTEP * local_image_size_x * local_image_size_y)(logit)
-        # print(f"Shape after Linear/Dense layer: {linear.shape}")
-
-        # Reshape the tensor
-        res = linear.view(-1, Prediction_TIMESTEP, local_image_size_x, local_image_size_y)
-        # print(f"Final Reshape: {res.shape}")
-
-        # Add a new dimension
-        res = res.unsqueeze(1)
-        return res
+        print(f"Shape after fc: {x.shape}")
+        print()
+        logit = self.classifier(x)
+        print(f"Final Shape- STEM->PA1->Block1->AvgPool->Classifier: {logit.shape}")
+        print()
+        return logit
 
 
 def CMT_Ti(img_size = 224, num_class = 1000):
     model = CMT(
-        in_channels = 4,
-        stem_channel = 16//2,
-        cmt_channel = [46//2, 92//2, 184//2, 368//2],
-        patch_channel = [46//2, 92//2, 184//2, 368//2],
-        block_layer = [2, 2, 10//2, 2],
+        in_channels = 3,
+        stem_channel = 16,
+        cmt_channel = [46, 92, 184, 368],
+        patch_channel = [46, 92, 184, 368],
+        block_layer = [2, 2, 10, 2],
         R = 3.6,
         img_size = img_size,
         num_class = num_class
@@ -186,9 +151,9 @@ def CMT_Ti(img_size = 224, num_class = 1000):
     return model
 
 
-def CMT_XS(img_size = 224, num_class = 10):
+def CMT_XS(img_size = 224, num_class = 1000):
     model = CMT(
-        in_channels = 4,
+        in_channels = 3,
         stem_channel = 16,
         cmt_channel = [52, 104, 208, 416],
         patch_channel = [52, 104, 208, 416],
@@ -201,7 +166,7 @@ def CMT_XS(img_size = 224, num_class = 10):
 
 def CMT_S(img_size = 224, num_class = 10):
     model = CMT(
-        in_channels = 4,
+        in_channels = 3,
         stem_channel = 32,
         cmt_channel = [64, 128, 256, 512],
         patch_channel = [64, 128, 256, 512],
@@ -212,9 +177,9 @@ def CMT_S(img_size = 224, num_class = 10):
     )
     return model
 
-def CMT_B(img_size = 224, num_class = 10):
+def CMT_B(img_size = 224, num_class = 1000):
     model = CMT(
-        in_channels = 4,
+        in_channels = 3,
         stem_channel = 38,
         cmt_channel = [76, 152, 304, 608],
         patch_channel = [76, 152, 304, 608],
@@ -240,13 +205,12 @@ def test():
     print(f"CMT_X  param: {calc_param(cmt_x) / 1e6 : .2f} M")
     print(f"CMT_B  param: {calc_param(cmt_b) / 1e6 : .2f} M")
 
-# if __name__ == "__main__":
-#     x = torch.randn(2, 4, 30, 30) #(B,C,H,W)
-#     # print(x)
-#     model = CMT_S()
+if __name__ == "__main__":
+    x = torch.randn(1, 3, 224, 224)
+    model = CMT_S()
 
-#     # print(model)
-#     print("---------------------------")
-#     print()
-#     out = model(x)
-#     print(f"Final shape of output: {out.shape}")
+    # print(model)
+    # print("---------------------------")
+    # print()
+    out = model(x)
+    print(f"Final shape of output: {out.shape}")
