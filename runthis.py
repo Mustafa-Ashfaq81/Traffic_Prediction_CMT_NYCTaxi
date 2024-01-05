@@ -75,8 +75,16 @@ def main(train=True):
 
     y_true = y_true.reshape((y_true.shape[0], prediction_of_time*local_image_size_x*local_image_size_y))
 
-    trainx_1, valx_1, trainx_2, valx_2, ytrain, val_y = train_test_split(region_data, temporal_data, y_true,
-                                                                         train_size=TRAIN_RATIO, random_state=42, shuffle=True)
+    # Train-Test Split
+    trainx_1 = region_data[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
+    testx_1 = region_data[int(np.shape(region_data)[0]*TRAIN_RATIO):]
+    trainx_2 = temporal_data[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
+    testx_2 = temporal_data[int(np.shape(region_data)[0]*TRAIN_RATIO):]
+    ytrain = y_true[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
+    ytest = y_true[int(np.shape(region_data)[0]*TRAIN_RATIO):]
+
+    trainx_1, valx_1, trainx_2, valx_2, ytrain, val_y = train_test_split(trainx_1, trainx_2, ytrain,
+                                                                    train_size=TRAIN_RATIO, random_state=42, shuffle=True)
 
     print("-"*100)
     print("Training Data: ")
@@ -84,23 +92,31 @@ def main(train=True):
     print("Temporal data training shape:", trainx_2.shape)
     print("True values Training shape:  ", ytrain.shape)
     print("-"*100)
-
     print("Val Data: ")
     print("Regional data Validation shape:", valx_1.shape)
     print("Temporal data Validation shape:", valx_2.shape)
     print("True values Validation shape:  ", val_y.shape)
     print("-"*100)
+    print("Regional data test shape:",testx_1.shape)
+    print("Temporal data test shape:",testx_2.shape)
+    print("True values test shape:  ",ytest.shape)
+    print("-"*100)
 
     model = CMT.CMT_Ti()
     optimizer = optim.Adam(model.parameters(), lr=LEARN, weight_decay=WEIGHT_DECAY)
     criterion = torch.nn.MSELoss()
-    scheduler = StepLR(optimizer, step_size=40, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=200, gamma=0.1)
 
     # Convert data to PyTorch tensors
     trainx_1_tensor = torch.tensor(trainx_1, dtype=torch.float32)
+    trainx_2_tensor = torch.tensor(trainx_2, dtype=torch.float32)
     ytrain_tensor = torch.tensor(ytrain, dtype=torch.float32)
     valx_1_tensor = torch.tensor(valx_1, dtype=torch.float32)
+    valx_2_tensor = torch.tensor(valx_2, dtype=torch.float32)
     yval_tensor = torch.tensor(val_y, dtype=torch.float32)
+    testx_1_tensor = torch.tensor(testx_1, dtype=torch.float32)
+    testx_2_tensor = torch.tensor(testx_2, dtype=torch.float32)
+    ytest_tensor = torch.tensor(ytest, dtype=torch.float32)
 
     # Create DataLoader for batching
     train_dataset = TensorDataset(trainx_1_tensor, ytrain_tensor)
@@ -127,7 +143,7 @@ def main(train=True):
 
             loss_dict[epoch+1] = avg_loss
             current_lr = scheduler.get_last_lr()[0]
-            if epoch == 0 or (epoch+1)%20 == 0:
+            if epoch == 0 or (epoch+1)%50 == 0:
                 print(f"\nEpoch: {epoch+1}/{EPOCH} -> MSE Loss: {avg_loss:.4f}, LR: {current_lr}")
 
             if epoch % checkpoint_interval == 0:
@@ -142,44 +158,7 @@ def main(train=True):
         print("Training is done")
         print("-"*100)
 
-    # Evaluate on validation data
-    model.eval()
-    with torch.no_grad():
-        pred_train = model(trainx_1_tensor)
-        pred_val = model(valx_1_tensor)
-    pred_val = pred_val.numpy()
-    pred_train = pred_train.numpy()
-
-    print(f"Val y shape : {val_y.shape}")
-    print(f"Val Pred shape : {pred_val.shape}")
-    print(f"Train y shape : {ytrain.shape}")
-    print(f"Train Pred shape : {pred_train.shape}")
-
-    train_true = ytrain
-    train_pred = pred_train
-    val_true = val_y
-    val_pred = pred_val
-
-    plt.figure(figsize=(25, 8))
-    plt.title('ACTUAL VS PREDICTED DEMAND Validation', fontsize=24)
-    plt.plot(np.sum(train_true, axis=1))
-    plt.plot(np.sum(train_pred, axis=1))
-    plt.legend(['Actual', 'Predicted'], fontsize=15)
-    plt.ylabel('Total Demand', fontsize=20)
-    plt.xlabel('Time (Hour)', fontsize=20)
-    plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'ACTUAL VS PREDICTED DEMAND TRAINING')
-    plt.close()
-
-    plt.figure(figsize=(25, 8))
-    plt.title('ACTUAL VS PREDICTED DEMAND Validation', fontsize=24)
-    plt.plot(np.sum(val_true, axis=1))
-    plt.plot(np.sum(val_pred, axis=1))
-    plt.legend(['Actual', 'Predicted'], fontsize=15)
-    plt.ylabel('Total Demand', fontsize=20)
-    plt.xlabel('Time (Hour)', fontsize=20)
-    plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'ACTUAL VS PREDICTED DEMAND VALIDATION')
-    plt.close()
-
+    # Train Loss
     plt.figure(figsize=(25, 10))
     plt.title('TRAINING LOSS', fontsize=24)
     plt.plot(list(loss_dict.keys()), list(loss_dict.values()), label='Train Loss')
@@ -188,10 +167,146 @@ def main(train=True):
     plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'TRAINING LOSS CURVE')
     plt.close()
 
+    # Evaluate on validation, test data
+    model.eval()
+    with torch.no_grad():
+        pred_train = model(trainx_1_tensor).numpy()
+        pred_val = model(valx_1_tensor).numpy()
+        pred_test = model(testx_1_tensor).numpy()
+
+    train_true = ytrain
+    train_pred = pred_train
+    val_true = val_y
+    val_pred = pred_val
+    test_true = ytest
+    test_pred = pred_test
+
+    # Traning
+    plt.figure(figsize=(25, 8))
+    plt.title('ACTUAL VS PREDICTED DEMAND TRAINING', fontsize=24)
+    plt.plot(np.sum(train_true, axis=1))
+    plt.plot(np.sum(train_pred, axis=1))
+    plt.legend(['Actual', 'Predicted'], fontsize=15)
+    plt.ylabel('Total Demand', fontsize=20)
+    plt.xlabel('Time (Hour)', fontsize=20)
+    plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'ACTUAL VS PREDICTED DEMAND TRAINING')
+    plt.close()
+
+    print("-"*100)
+    print("Training MAE:",mae(train_true,train_pred))
+    print("Training RMSE:",math.sqrt(mse(train_true,train_pred)))
+    print("Training MAPE:",MAPE(train_true,train_pred))
+    print("Training MAPE2:",MAPE2(train_true,train_pred))
+    print("-"*100)
+
+    # Validation
+    plt.figure(figsize=(25, 8))
+    plt.title('ACTUAL VS PREDICTED DEMAND VALIDATION', fontsize=24)
+    plt.plot(np.sum(val_true, axis=1))
+    plt.plot(np.sum(val_pred, axis=1))
+    plt.legend(['Actual', 'Predicted'], fontsize=15)
+    plt.ylabel('Total Demand', fontsize=20)
+    plt.xlabel('Time (Hour)', fontsize=20)
+    plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'ACTUAL VS PREDICTED DEMAND VALIDATION')
+    plt.close()
+
+    print("-"*100)
     print("Validation MAE:", mae(val_true, val_pred))
     print("Validation RMSE:", math.sqrt(mse(val_true, val_pred)))
     print("Validation MAPE:", MAPE(val_true, val_pred))
     print("Validation MAPE2:", MAPE2(val_true, val_pred))
+    print("-"*100)
+
+    # Test
+    plt.figure(figsize=(25,5))
+    plt.title('ACTUAL VS PREDICTED DEMAND TESTING',fontsize=24)
+    plt.plot(np.sum(test_true,axis=1))
+    plt.plot(np.sum(test_pred,axis=1))
+    plt.legend(['Actual','Predicted'],fontsize=15)
+    plt.ylabel('Total Demand',fontsize=20)
+    plt.xlabel('Time (Hour)',fontsize=20)
+    plt.savefig('Figures/'+model_name+'_'+dataset+'_'+'ACTUAL VS PREDICTED DEMAND TESTING')
+    plt.close()
+
+    print("-"*100)
+    print("Testing MAE:",mae(test_true,test_pred))
+    print("Testing RMSE:",math.sqrt(mse(test_true,test_pred)))
+    print("Testing MAPE:",MAPE(test_true,test_pred))
+    print("Testing MAPE2:",MAPE2(test_true,test_pred))
+    print("-"*100)
+
+    # Overall
+    region_data_tensor = torch.tensor(region_data, dtype=torch.float32)
+    model.eval()
+    with torch.no_grad():
+        pred_overall = model(region_data_tensor).numpy()
+
+    x = np.linspace(previous_time_input + 1, previous_time_input + len(pred_overall), len(pred_overall))  #Results start from the 5th hour upto x hours
+    
+    plt.figure(figsize=(25,5))
+    plt.title('ACTUAL VS PREDICTED DEMAND FOR TWO MONTHS',fontsize=24)
+    plt.plot(x,np.sum(y_true,axis=1))
+    plt.plot(x,np.sum(pred_overall,axis=1))
+    plt.legend(['Actual','Predicted'],fontsize=15)
+    plt.ylabel('Total Demand',fontsize=20)
+    plt.xlabel('Time (Hour)',fontsize=20)
+    plt.savefig('Figures/'+model_name+'_'+dataset+'_'+'ACTUAL VS PREDICTED DEMAND OVERALL')
+    plt.close()
+
+    print("-"*100)
+    print('Overall MAE:',mae(y_true,pred_overall))
+    print('Overall RMSE:',math.sqrt(mse(y_true,pred_overall)))
+    print('Overall MAPE:',MAPE(y_true,pred_overall))
+    print('Overall MAPE2:',MAPE2(y_true,pred_overall))
+    print("-"*100)
+
+    # Rolling
+    Hour = 168    # Number of hours selected for rolling prediction from the end of the data 
+
+    rolling_pred_array = []
+    # last4_temporal=temporal_data[-Hour-1:-Hour]
+    # new_temporal=temporal_data[-Hour:]
+    last4_region = region_data[-Hour-1:-Hour]
+    # last4_region = torch.tensor(last4_region, dtype=torch.float32)
+
+    for i in range(Hour):
+        last4_region = torch.tensor(last4_region, dtype=torch.float32)
+        last4_region = last4_region.reshape(-1,TIMESTEP_OUR,local_image_size_x, local_image_size_y)
+        model.eval()
+        with torch.no_grad():
+            pred = model(last4_region).numpy()
+
+        # pred=pred.reshape((prediction_of_time, local_image_size_x, local_image_size_y))
+        rolling_pred_array.append(pred)
+
+        last4_region = last4_region[0, prediction_of_time:]    #Updating the last 4 hour spatial data for rolling prediction
+        # last4_temporal=new_temporal[i+1:i+2]                #Updating the last 4 hour temporal data for rolling prediction
+        
+        last4_region = last4_region.reshape(-1,local_image_size_x*local_image_size_y)
+        last4_region = np.concatenate((last4_region,pred))
+
+    rolling_true = y_true[-Hour:,:]
+    # print(f"rolling true shape: {rolling_true.shape}")
+    rolling_pred_array = np.array(rolling_pred_array)
+    # print(f"rolling array shape: {rolling_pred_array.shape}")
+    rolling_pred_array=rolling_pred_array.reshape(Hour,local_image_size_x*local_image_size_y)
+
+    plt.figure(figsize=(25,5))
+    plt.title('ACTUAL VS ROLLING PREDICTED DEMAND FOR ONE WEEK',fontsize=24)
+    plt.plot(np.sum(rolling_true,axis=1))
+    plt.plot(np.sum(rolling_pred_array,axis=1))
+    plt.legend(['Actual','Predicted'],fontsize=15)
+    plt.ylabel('Total Demand',fontsize=20)
+    plt.xlabel('Time (Hour)',fontsize=20)
+    plt.savefig('Figures/'+model_name+'_'+dataset+'_'+'ACTUAL VS PREDICTED DEMAND ROLLING')
+    plt.close()
+
+    print("-"*100)
+    print('Rolling MAE:',mae(rolling_true,rolling_pred_array))
+    print('Rolling RMSE:',math.sqrt(mse(rolling_true,rolling_pred_array)))
+    print('Rolling MAPE:',MAPE(rolling_true,rolling_pred_array))
+    print('Rolling MAPE2:',MAPE2(rolling_true,rolling_pred_array))
+    print("-"*100)
 
 if __name__ == "__main__":
     main()
