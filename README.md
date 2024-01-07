@@ -24,7 +24,7 @@ Now to run the model, simply navigate into the folder using
 ``` cd Traffic_Prediction_CMT_NYCTaxi```     
 and finally     
 ``` python3 runthis.py```        
-You should be able to see the sizes of datasets at the start and the loss after every epochs. Once done the losses will be printed and a graph will be generated shpwing the actual and predicted values. Navigate into the Figures folder to see this graph.
+You should be able to see the sizes of datasets at the start and the loss after every epochs. Once done the losses will be printed and a graph will be generated showing the actual and predicted values. Navigate into the Figures folder to see this graph.
 
 ### Playing with Parameters
 
