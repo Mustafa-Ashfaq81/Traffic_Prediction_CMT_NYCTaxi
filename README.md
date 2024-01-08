@@ -15,15 +15,15 @@ Since its a pytorch model which extensively makes use of the sklearn library mak
 ### Installing
 
 Open a folder in VS Code or any other IDE and simply run the following command in the terminal     
-``` git clone https://github.com/Mustafa-Ashfaq81/Traffic_Prediction_CMT_NYCTaxi.git```       
+```git clone https://github.com/Mustafa-Ashfaq81/Traffic_Prediction_CMT_NYCTaxi.git```       
 The entire model will be cloned on your device and ready to run.
 
 ## Running the model
 
 Now to run the model, simply navigate into the folder using           
-``` cd Traffic_Prediction_CMT_NYCTaxi```     
+```cd Traffic_Prediction_CMT_NYCTaxi```     
 and finally     
-``` python3 runthis.py```        
+```python3 runthis.py```        
 You should be able to see the sizes of datasets at the start and the loss after every epochs. Once done the losses will be printed and a graph will be generated showing the actual and predicted values. Navigate into the Figures folder to see this graph.
 
 ### Playing with Parameters
@@ -54,6 +54,12 @@ The parameters we have used can be found in Param_Our.py. You can play around an
 - Wajiha Naveed
 
 ## Acknowledgments
+### CMT: Convolutional Neural Networks Meet Vision Transformers
+We express gratitude to the authors of "CMT: Convolutional Neural Networks Meet Vision Transformers" for their groundbreaking hybrid network, addressing performance and computational cost gaps between transformers and convolutional neural networks. Their work, particularly the development of CMTs, inspires our use of a CMT model for advanced traffic prediction.
 
+### DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction
+Our gratitude to the authors of "DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction" for their impactful insights on grid-based models and on the utilization of deep learning on spatiotemporal data, has ignited significant interest in urban traffic prediction within the AI and Intelligent Transportation System community.
 
+### ______
+We extend our sincere appreciation to _____ for providing the code on CMT, which greatly aided our understanding of the model and how to fuse a transformer and a CNN. His model served as inspiration for our development of a CMT model designed for regression, predicting traffic flow.
 
