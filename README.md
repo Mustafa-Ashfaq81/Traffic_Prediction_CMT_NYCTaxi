@@ -3,15 +3,15 @@
 Our model leverages the fusion of Convolutional Neural Networks (CNNs) and Transformers to elevate the accuracy of traffic flow prediction. Designed as a regression model using PyTorch, our innovative approach foretells the upcoming hour of traffic, leveraging insights from the preceding four hours. Utilizing a streamlined data stream approach, our model comprehensively processes the four-hour data sequence in a single iteration, enabling it to seamlessly generate predictions for the fifth hour. Dive into the future of traffic prediction with the synergy of CNNs and Transformers in our innovative CMT model.
 
 | Model         | # Parameters |
-|---------------|------------|
-| CMT_Ti        | 9.31 M     |
-| CMT_S         | 25.89 M    |
-| CMT_B         | 45.17 M    |
+|---------------|--------------|
+| CMT_Ti        | 9.31 M       |
+| CMT_S         | 25.89 M      |
+| CMT_B         | 45.17 M      |
 
 ## Model used for training:
-| Model   | Dataset | Learning Rate | LR Scheduler | Optimizer | Weight decay |
-|---------|---------|---------------|--------------|-----------|--------------|
-| CMT-B  | NYC_TAXI | 0.0005          | Step LR    | Adam    | 5e-5         |
+| Model  | Dataset  | Learning Rate | LR Scheduler | Optimizer | Weight decay |
+|--------|----------|---------------|--------------|-----------|--------------|
+| CMT-B  | NYC_TAXI | 5e-04         | Step LR      | Adam      | 5e-05        |
 
 ## Quick Start Guide
 
