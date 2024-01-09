@@ -54,7 +54,7 @@ The parameters we have used can be found in Param_Our.py. You can play around an
 - Wajiha Naveed
 
 ## Acknowledgments
-### CMT: Convolutional Neural Networks Meet Vision Transformers(https://arxiv.org/abs/2107.06263v2)
+### [CMT: Convolutional Neural Networks Meet Vision Transformers](https://arxiv.org/abs/2107.06263v2)
 We express gratitude to the authors of "CMT: Convolutional Neural Networks Meet Vision Transformers" for their groundbreaking hybrid network, addressing performance and computational cost gaps between transformers and convolutional neural networks. Their work, particularly the development of CMTs, inspires our use of a CMT model for advanced traffic prediction.
 
 ### DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction
