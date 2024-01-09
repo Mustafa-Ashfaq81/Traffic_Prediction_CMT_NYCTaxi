@@ -59,11 +59,6 @@ The parameters we have used can be found in Param_Our.py. You can play around an
 - Param_Our: Custom module for parameter configurations
 - CMT: Custom module for our CMT model
 
-## Authors
-
-- Mustafa Ashfaq 
-- Wajiha Naveed
-
 ## Acknowledgments
 ### [CMT: Convolutional Neural Networks Meet Vision Transformers](https://arxiv.org/abs/2107.06263v2)
 We express gratitude to the authors of "CMT: Convolutional Neural Networks Meet Vision Transformers" for their groundbreaking hybrid network, addressing performance and computational cost gaps between transformers and convolutional neural networks. Their work, particularly the development of CMTs, inspires our use of a CMT model for advanced traffic prediction.
@@ -71,6 +66,6 @@ We express gratitude to the authors of "CMT: Convolutional Neural Networks Meet 
 ### [DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction](https://arxiv.org/abs/2108.09091)
 Our gratitude to the authors of "DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction" for their impactful insights on grid-based models and on the utilization of deep learning on spatiotemporal data, has ignited significant interest in urban traffic prediction within the AI and Intelligent Transportation System community.
 
-### ______
-We extend our sincere appreciation to _____ for providing the code on CMT, which greatly aided our understanding of the model and how to fuse a transformer and a CNN. His model served as inspiration for our development of a CMT model designed for regression, predicting traffic flow.
-
+## Authors
+- Mustafa Ashfaq 
+- Wajiha Naveed
