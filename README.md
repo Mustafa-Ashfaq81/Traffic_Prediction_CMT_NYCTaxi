@@ -8,6 +8,11 @@ Our model leverages the fusion of Convolutional Neural Networks (CNNs) and Trans
 | CMT_S         | 25.89 M    |
 | CMT_B         | 45.17 M    |
 
+## Model used for training:
+| Model   | Dataset | Learning Rate | LR Scheduler | Optimizer | Weight decay |
+|---------|---------|---------------|--------------|-----------|--------------|
+| CMT-B  | NYC_TAXI | 0.0005          | Step LR    | Adam    | 5e-5         |
+
 ## Quick Start Guide
 
 Follow these instructions to swiftly set up and run the project on your local machine for both development and testing purposes. Get started with ease and efficiency.
