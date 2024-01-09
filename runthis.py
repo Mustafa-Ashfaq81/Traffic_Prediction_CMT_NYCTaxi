@@ -84,7 +84,7 @@ def main(train=True):
     ytest = y_true[int(np.shape(region_data)[0]*TRAIN_RATIO):]
 
     trainx_1, valx_1, trainx_2, valx_2, ytrain, val_y = train_test_split(trainx_1, trainx_2, ytrain,
-                                                                    train_size=TRAIN_RATIO, random_state=42, shuffle=True)
+                                                            train_size=TRAIN_RATIO, random_state=42, shuffle=True)
 
     print("-"*100)
     print("Training Data: ")
@@ -97,15 +97,16 @@ def main(train=True):
     print("Temporal data Validation shape:", valx_2.shape)
     print("True values Validation shape:  ", val_y.shape)
     print("-"*100)
+    print("Test Data: ")
     print("Regional data test shape:",testx_1.shape)
     print("Temporal data test shape:",testx_2.shape)
     print("True values test shape:  ",ytest.shape)
     print("-"*100)
 
-    model = CMT.CMT_Ti()
+    model = CMT.CMT_B()
     optimizer = optim.Adam(model.parameters(), lr=LEARN, weight_decay=WEIGHT_DECAY)
     criterion = torch.nn.MSELoss()
-    scheduler = StepLR(optimizer, step_size=200, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=70, gamma=0.1)
 
     # Convert data to PyTorch tensors
     trainx_1_tensor = torch.tensor(trainx_1, dtype=torch.float32)
@@ -121,50 +122,67 @@ def main(train=True):
     # Create DataLoader for batching
     train_dataset = TensorDataset(trainx_1_tensor, ytrain_tensor)
     train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True)
+    val_dataset = TensorDataset(valx_1_tensor, yval_tensor)
+    val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=True)
     
-    checkpoint_interval = 40  # Save state of model after every 30 epochs
-    loss_dict ={}
+    checkpoint_interval = 50  # Save state of model after every 30 epochs
+    train_loss_dict ={}
+    val_loss_dict = {}
     if train:
         progress_bar = tqdm(range(EPOCH), ncols=100, position=0)
         for epoch in progress_bar:
+            total_train_loss = 0.0
             model.train()
-            total_loss = 0.0
-
             for inputs, targets in train_loader:
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
-                total_loss += loss.item()
+                total_train_loss += loss.item()
 
-            avg_loss = total_loss / len(train_loader)
+            avg_train_loss = total_train_loss / len(train_loader)
             scheduler.step()
 
-            loss_dict[epoch+1] = avg_loss
+            train_loss_dict[epoch+1] = avg_train_loss
             current_lr = scheduler.get_last_lr()[0]
-            if epoch == 0 or (epoch+1)%50 == 0:
-                print(f"\nEpoch: {epoch+1}/{EPOCH} -> MSE Loss: {avg_loss:.4f}, LR: {current_lr}")
 
-            if epoch % checkpoint_interval == 0:
+            # Validation phase
+            val_loss = 0.0
+            model.eval()
+            with torch.no_grad():  # No gradient computation during validation
+                for val_inputs, val_targets in val_loader:
+                    val_outputs = model(val_inputs)
+                    val_batch_loss = criterion(val_outputs, val_targets)
+                    val_loss += val_batch_loss.item()
+
+            avg_val_loss = val_loss / len(val_loader)
+            val_loss_dict[epoch+1] = avg_val_loss
+
+            if epoch == 0 or (epoch+1)%50 == 0:
+                print(f"\nEpoch: {epoch+1}/{EPOCH} -> Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}, LR: {current_lr}")
+
+            if (epoch+1) % checkpoint_interval == 0:
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'loss': avg_loss,
-                    # 'output': output
+                    'train_loss': train_loss_dict,
+                    'val_loss' : val_loss_dict
                 }, model_path)
         print("-"*100)
         print("Training is done")
         print("-"*100)
 
-    # Train Loss
+    # Train & Val Loss
     plt.figure(figsize=(25, 10))
-    plt.title('TRAINING LOSS', fontsize=24)
-    plt.plot(list(loss_dict.keys()), list(loss_dict.values()), label='Train Loss')
+    plt.title('TRAINING & VAL LOSS', fontsize=24)
+    plt.plot(list(train_loss_dict.keys()), list(train_loss_dict.values()))
+    plt.plot(list(val_loss_dict.keys()), list(val_loss_dict.values()))
+    plt.legend(['Train Loss', 'Val Loss'], fontsize=15)
     plt.ylabel('Loss', fontsize=20)
     plt.xlabel('Epoch', fontsize=20)
-    plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'TRAINING LOSS CURVE')
+    plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'TRAINING & VAL LOSS CURVE')
     plt.close()
 
     # Evaluate on validation, test data
@@ -192,7 +210,6 @@ def main(train=True):
     plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'ACTUAL VS PREDICTED DEMAND TRAINING')
     plt.close()
 
-    print("-"*100)
     print("Training MAE:",mae(train_true,train_pred))
     print("Training RMSE:",math.sqrt(mse(train_true,train_pred)))
     print("Training MAPE:",MAPE(train_true,train_pred))
@@ -210,7 +227,6 @@ def main(train=True):
     plt.savefig('Figures/' + model_name + '_' + dataset + '_' + 'ACTUAL VS PREDICTED DEMAND VALIDATION')
     plt.close()
 
-    print("-"*100)
     print("Validation MAE:", mae(val_true, val_pred))
     print("Validation RMSE:", math.sqrt(mse(val_true, val_pred)))
     print("Validation MAPE:", MAPE(val_true, val_pred))
@@ -228,7 +244,6 @@ def main(train=True):
     plt.savefig('Figures/'+model_name+'_'+dataset+'_'+'ACTUAL VS PREDICTED DEMAND TESTING')
     plt.close()
 
-    print("-"*100)
     print("Testing MAE:",mae(test_true,test_pred))
     print("Testing RMSE:",math.sqrt(mse(test_true,test_pred)))
     print("Testing MAPE:",MAPE(test_true,test_pred))
@@ -253,7 +268,6 @@ def main(train=True):
     plt.savefig('Figures/'+model_name+'_'+dataset+'_'+'ACTUAL VS PREDICTED DEMAND OVERALL')
     plt.close()
 
-    print("-"*100)
     print('Overall MAE:',mae(y_true,pred_overall))
     print('Overall RMSE:',math.sqrt(mse(y_true,pred_overall)))
     print('Overall MAPE:',MAPE(y_true,pred_overall))
@@ -261,35 +275,38 @@ def main(train=True):
     print("-"*100)
 
     # Rolling
-    Hour = 168    # Number of hours selected for rolling prediction from the end of the data 
+    Hour = 168 # 1 week selected for rolling prediction from the end of the data 
 
     rolling_pred_array = []
-    # last4_temporal=temporal_data[-Hour-1:-Hour]
-    # new_temporal=temporal_data[-Hour:]
+    # last4_region = region_data[-Hour-4:-Hour]
     last4_region = region_data[-Hour-1:-Hour]
-    # last4_region = torch.tensor(last4_region, dtype=torch.float32)
+    # print(f"Initial shape of last 4 region: {last4_region.shape}")
 
     for i in range(Hour):
         last4_region = torch.tensor(last4_region, dtype=torch.float32)
-        last4_region = last4_region.reshape(-1,TIMESTEP_OUR,local_image_size_x, local_image_size_y)
+        last4_region = last4_region.reshape(1,TIMESTEP_OUR,local_image_size_x, local_image_size_y)
         model.eval()
         with torch.no_grad():
             pred = model(last4_region).numpy()
 
-        # pred=pred.reshape((prediction_of_time, local_image_size_x, local_image_size_y))
-        rolling_pred_array.append(pred)
+        rolling_pred_array.append(pred.squeeze(0))
+        # print(f"Squeezed: {pred.squeeze(0).shape}")
+        pred = pred.reshape(1, local_image_size_x, local_image_size_y)
 
-        last4_region = last4_region[0, prediction_of_time:]    #Updating the last 4 hour spatial data for rolling prediction
-        # last4_temporal=new_temporal[i+1:i+2]                #Updating the last 4 hour temporal data for rolling prediction
-        
-        last4_region = last4_region.reshape(-1,local_image_size_x*local_image_size_y)
-        last4_region = np.concatenate((last4_region,pred))
+        # print(f"Combine\nnext 3 region shape: {last4_region[0,1:].shape}\npred shape: {pred.shape}")
+        # print(f"Pred reshaped: {pred.reshape(1, local_image_size_x, local_image_size_y).shape}")
+
+        # Remove the oldest hour 
+        last4_region = last4_region[0,1:]
+        # Append the predicted hour
+        last4_region = np.concatenate((last4_region, pred))
+        # print(f"Concatenated shape: {last4_region.shape}")
+
 
     rolling_true = y_true[-Hour:,:]
     # print(f"rolling true shape: {rolling_true.shape}")
     rolling_pred_array = np.array(rolling_pred_array)
     # print(f"rolling array shape: {rolling_pred_array.shape}")
-    rolling_pred_array=rolling_pred_array.reshape(Hour,local_image_size_x*local_image_size_y)
 
     plt.figure(figsize=(25,5))
     plt.title('ACTUAL VS ROLLING PREDICTED DEMAND FOR ONE WEEK',fontsize=24)
@@ -301,7 +318,6 @@ def main(train=True):
     plt.savefig('Figures/'+model_name+'_'+dataset+'_'+'ACTUAL VS PREDICTED DEMAND ROLLING')
     plt.close()
 
-    print("-"*100)
     print('Rolling MAE:',mae(rolling_true,rolling_pred_array))
     print('Rolling RMSE:',math.sqrt(mse(rolling_true,rolling_pred_array)))
     print('Rolling MAPE:',MAPE(rolling_true,rolling_pred_array))

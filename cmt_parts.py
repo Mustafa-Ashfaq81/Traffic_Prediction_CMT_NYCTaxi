@@ -72,7 +72,7 @@ class LMHSA(nn.Module):
         self.dropout = dropout
         self.scaled_factor = self.d_k ** -0.5
         self.num_patches = (self.d_k // self.stride) ** 2
-        self.B = nn.Parameter(torch.Tensor(1, self.heads, input_size ** 2, (input_size // stride) ** 2), requires_grad = True)
+        # self.B = nn.Parameter(torch.Tensor(1, self.heads, input_size ** 2, (input_size // stride) ** 2), requires_grad = True)
 
 
     def forward(self, x):
@@ -151,14 +151,13 @@ class Patch_Aggregate(nn.Module):
     Input:
         - x: (B, In_C, H, W)
     Output:
-        - x: (B, Out_C, H / 2, W / 2)
+        - x: (B, Out_C=In_C*2, H / 2, W / 2)
     """
-    def __init__(self, in_channels, out_channels = None):
-        pad = 0
-        if out_channels == 368//2:
-            pad = 1
-        # print(f"In_channels: {in_channels}, Out_channels: {out_channels}")
+    def __init__(self, in_channels, out_channels = None, pad_flag = False):
         super(Patch_Aggregate, self).__init__()
+        pad = 0
+        if pad_flag:
+            pad = 1
         if out_channels is None:
             out_channels = in_channels
         self.conv = Conv2x2(in_channels, out_channels, stride = 2, padding = pad)
@@ -177,7 +176,6 @@ class Patch_Aggregate(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         _, c, h, w = x.size()
-        # result = nn.LayerNorm((c, h, w)).cuda()(x)
         result = torch.nn.functional.layer_norm(x, (c, h, w))
         return result
 
