@@ -195,14 +195,15 @@ def CMT_B(img_size = 224):
 
 def test():
     calc_param = lambda net: sum(p.numel() for p in net.parameters() if p.requires_grad)
-    img = torch.randn(2, 4, 30, 30) # (Hours(total), Timestep(4), Region(x), Region(y)), (B,C,H,W)
+    # img = torch.randn(903, 156, 30, 30) # (Hours(total), Timestep(4), Region(x), Region(y)), (B,C,H,W)
+    img = torch.randn(1416, 4, 30, 30) # (Hours(total), Timestep(4), Region(x), Region(y)), (B,C,H,W)
     cmt_ti = CMT_Ti()
     cmt_s = CMT_S()
     cmt_b = CMT_B()
-    out = cmt_b(img)
+    out = cmt_s(img)
     print("-"*100)
     print(f"Shape of input: {img.shape}")
-    print(f"Final shape of output: {out.shape}")
+    print(f"Shape of output: {out.shape}")
     print("-"*100)
     print(f"CMT_Ti Parameters: {calc_param(cmt_ti) / 1e6 : .2f} M")
     print(f"CMT_S  Parameters: {calc_param(cmt_s) / 1e6 : .2f} M")

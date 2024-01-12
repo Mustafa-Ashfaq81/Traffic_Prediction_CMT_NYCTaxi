@@ -40,7 +40,7 @@ def data_slider(data, type_of_data, previous_time_input=TIMESTEP_OUR, prediction
     data_array = np.array(data_array)
     return data_array
 
-def main(train=True):
+def main(train=False):
     # Get the directory path of the current script
     base_directory = os.path.dirname(__file__)
     directory_path = os.path.join(base_directory)  # Example directory name
@@ -106,7 +106,7 @@ def main(train=True):
     model = CMT.CMT_B()
     optimizer = optim.Adam(model.parameters(), lr=LEARN, weight_decay=WEIGHT_DECAY)
     criterion = torch.nn.MSELoss()
-    scheduler = StepLR(optimizer, step_size=70, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=100, gamma=0.1)
 
     # Convert data to PyTorch tensors
     trainx_1_tensor = torch.tensor(trainx_1, dtype=torch.float32)
@@ -125,7 +125,7 @@ def main(train=True):
     val_dataset = TensorDataset(valx_1_tensor, yval_tensor)
     val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=True)
     
-    checkpoint_interval = 50  # Save state of model after every 30 epochs
+    checkpoint_interval = 50  # Save state of model after every 50 epochs
     train_loss_dict ={}
     val_loss_dict = {}
     if train:
@@ -173,6 +173,11 @@ def main(train=True):
         print("-"*100)
         print("Training is done")
         print("-"*100)
+    else:
+        checkpoint = torch.load('checkpoint.pth')
+        model.load_state_dict(checkpoint['model_state_dict'])
+        train_loss_dict = checkpoint['train_loss']
+        val_loss_dict = checkpoint['val_loss']
 
     # Train & Val Loss
     plt.figure(figsize=(25, 10))
@@ -278,36 +283,27 @@ def main(train=True):
     Hour = 168 # 1 week selected for rolling prediction from the end of the data 
 
     rolling_pred_array = []
-    # last4_region = region_data[-Hour-4:-Hour]
-    last4_region = region_data[-Hour-1:-Hour]
-    # print(f"Initial shape of last 4 region: {last4_region.shape}")
+    last4_region = region_data_tensor[-Hour-1:-Hour]
 
     for i in range(Hour):
-        last4_region = torch.tensor(last4_region, dtype=torch.float32)
-        last4_region = last4_region.reshape(1,TIMESTEP_OUR,local_image_size_x, local_image_size_y)
+        last4_region = last4_region.reshape(Prediction_TIMESTEP,TIMESTEP_OUR,local_image_size_x, local_image_size_y)
         model.eval()
         with torch.no_grad():
-            pred = model(last4_region).numpy()
+            pred = model(last4_region)
 
-        rolling_pred_array.append(pred.squeeze(0))
-        # print(f"Squeezed: {pred.squeeze(0).shape}")
-        pred = pred.reshape(1, local_image_size_x, local_image_size_y)
+        rolling_pred_array.append(pred.numpy().squeeze(0))
 
-        # print(f"Combine\nnext 3 region shape: {last4_region[0,1:].shape}\npred shape: {pred.shape}")
-        # print(f"Pred reshaped: {pred.reshape(1, local_image_size_x, local_image_size_y).shape}")
+        pred = pred.reshape(Prediction_TIMESTEP, local_image_size_x, local_image_size_y)
 
         # Remove the oldest hour 
-        last4_region = last4_region[0,1:]
+        last3_region = last4_region[:, Prediction_TIMESTEP:, :, :]
         # Append the predicted hour
-        last4_region = np.concatenate((last4_region, pred))
-        # print(f"Concatenated shape: {last4_region.shape}")
+        last4_region = torch.cat((last3_region, pred.unsqueeze(0)), axis=1)
 
 
     rolling_true = y_true[-Hour:,:]
-    # print(f"rolling true shape: {rolling_true.shape}")
     rolling_pred_array = np.array(rolling_pred_array)
-    # print(f"rolling array shape: {rolling_pred_array.shape}")
-
+    
     plt.figure(figsize=(25,5))
     plt.title('ACTUAL VS ROLLING PREDICTED DEMAND FOR ONE WEEK',fontsize=24)
     plt.plot(np.sum(rolling_true,axis=1))
