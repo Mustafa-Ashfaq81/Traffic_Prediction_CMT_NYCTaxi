@@ -41,7 +41,7 @@ def data_slider(data, previous_time_input = PREVIOUS_TIMESTEP, prediction_of_tim
     data_array = np.array(data_array)
     return data_array
 
-def main(train=True):
+def main(train=False):
     # Get the directory path of the current script
     base_directory = os.path.dirname(__file__)
     directory_path = os.path.join(base_directory)  # Example directory name
@@ -54,9 +54,10 @@ def main(train=True):
     dataset = 'NYC_TAXI'
 
     region = np.load(data_path)
-    
     region = np.transpose(region, (0, 3, 1, 2))
-    print("SPATIAO-TEMPORAL FILE SHAPE:", region.shape)
+
+    print("-"*100)
+    print("SPATIO-TEMPORAL FILE SHAPE:", region.shape)
 
     region_data = data_slider(region)
     region_data = region_data.reshape((region_data.shape[0], PREVIOUS_TIMESTEP, local_image_size_x, local_image_size_y))
