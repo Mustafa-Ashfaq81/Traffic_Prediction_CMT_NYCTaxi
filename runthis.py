@@ -1,6 +1,7 @@
 import os
 import math
 import numpy as np
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import torch
 import torch.optim as optim
@@ -11,9 +12,8 @@ from sklearn.metrics import mean_squared_error as mse
 from sklearn.metrics import mean_absolute_error as mae
 from Param_Our import *
 import CMT
-from tqdm import tqdm
 
-def MAPE(y_true, y_pred):
+def MAPE(y_true, y_pred): # the mean absolute percentage errors
     y_true, y_pred = np.array(y_true).flatten(), np.array(y_pred).flatten()
     mape = []
     for i in range(len(y_true)):
@@ -23,15 +23,16 @@ def MAPE(y_true, y_pred):
             mape.append((np.abs((y_true[i] - y_pred[i]) / y_true[i]) * 100))
     return np.mean(mape)
 
-def MAPE2(y_true, y_pred):
+def MAPE2(y_true, y_pred): # the mean absolute percentage errors with time series(sequential data)
     y_true = np.sum(y_true, axis=-1)
     y_pred = np.sum(y_pred, axis=-1)
     mape = []
     for i in range(np.shape(y_true)[0]):
-        mape.append((np.abs((y_true[i] - y_pred[i]) / y_true[i]) * 100))
+        # mape.append((np.abs((y_true[i] - y_pred[i]) / y_true[i]) * 100))
+        mape.append((np.abs((y_true[i] - y_pred[i]) / (y_true[i] + 1e-8)) * 100))
     return np.mean(mape)
 
-def data_slider(data, type_of_data, previous_time_input=TIMESTEP_OUR, prediction_of_time=Prediction_TIMESTEP):
+def data_slider(data, previous_time_input = PREVIOUS_TIMESTEP, prediction_of_time = PREDICTION_TIMESTEP):
     data = np.array(data)
     data_array = []
     for i in range(np.shape(data)[0] - (previous_time_input + prediction_of_time) + 1):
@@ -40,92 +41,76 @@ def data_slider(data, type_of_data, previous_time_input=TIMESTEP_OUR, prediction
     data_array = np.array(data_array)
     return data_array
 
-def main(train=False):
+def main(train=True):
     # Get the directory path of the current script
     base_directory = os.path.dirname(__file__)
     directory_path = os.path.join(base_directory)  # Example directory name
     data_path = os.path.join(base_directory)  # Example data folder name
     model_path = os.path.join(base_directory, 'checkpoint.pth')
     os.chdir(directory_path)
-    previous_time_input = TIMESTEP_OUR  # Input time slots (4-hour input)
-    prediction_of_time = Prediction_TIMESTEP  # Output (1-hour prediction)
     os.makedirs(os.path.join(base_directory, 'Figures'), exist_ok=True)
-    region_path = os.path.join(data_path, 'flowioK_TaxiNYC_20160101_20160228_60min.npy')
-    temporal_path = os.path.join(data_path, 'Temporal_Master_Grid_NYC30x30(60_min_resolution).npy')
-    model_name = "CMT"
+    data_path = os.path.join(data_path, 'NYC_Taxi_JuneFinal_30x30.npy')
+    model_name = 'CMT'
     dataset = 'NYC_TAXI'
 
-    region = np.load(region_path)
-    temporal = np.load(temporal_path)
-
-    temporal = np.array(temporal)
+    region = np.load(data_path)
+    
     region = np.transpose(region, (0, 3, 1, 2))
-    print("TEMPORAL FILE SHAPE:", temporal.shape)
-    print("SPATIAL FILE SHAPE:", region.shape)
+    print("SPATIAO-TEMPORAL FILE SHAPE:", region.shape)
 
-    region_data = data_slider(region, "Spatial")
-    region_data = region_data.reshape((region_data.shape[0], previous_time_input, local_image_size_x, local_image_size_y))
-    temporal_data = data_slider(temporal, "Temporal")
+    region_data = data_slider(region)
+    region_data = region_data.reshape((region_data.shape[0], PREVIOUS_TIMESTEP, local_image_size_x, local_image_size_y))
 
     y_true = []
-    for i in range(np.shape(region)[0] - (previous_time_input + prediction_of_time) + 1):
-        temp = region[i + previous_time_input:i + (previous_time_input + prediction_of_time)]
+    for i in range(np.shape(region)[0] - (PREVIOUS_TIMESTEP + PREDICTION_TIMESTEP) + 1):
+        temp = region[i + PREVIOUS_TIMESTEP:i + (PREVIOUS_TIMESTEP + PREDICTION_TIMESTEP)]
         y_true.append(temp)
     y_true = np.array(y_true)
 
-    y_true = y_true.reshape((y_true.shape[0], prediction_of_time*local_image_size_x*local_image_size_y))
+    y_true = y_true.reshape((y_true.shape[0], PREDICTION_TIMESTEP*local_image_size_x*local_image_size_y))
 
     # Train-Test Split
-    trainx_1 = region_data[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
-    testx_1 = region_data[int(np.shape(region_data)[0]*TRAIN_RATIO):]
-    trainx_2 = temporal_data[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
-    testx_2 = temporal_data[int(np.shape(region_data)[0]*TRAIN_RATIO):]
+    trainx = region_data[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
+    testx = region_data[int(np.shape(region_data)[0]*TRAIN_RATIO):]
     ytrain = y_true[:int(np.shape(region_data)[0]*TRAIN_RATIO)]
     ytest = y_true[int(np.shape(region_data)[0]*TRAIN_RATIO):]
 
-    trainx_1, valx_1, trainx_2, valx_2, ytrain, val_y = train_test_split(trainx_1, trainx_2, ytrain,
-                                                            train_size=TRAIN_RATIO, random_state=42, shuffle=True)
+    trainx, valx, ytrain, yval = train_test_split(trainx, ytrain, train_size=TRAIN_RATIO,
+                                                  random_state=42, shuffle=True)
 
     print("-"*100)
     print("Training Data: ")
-    print("Regional data training shape:", trainx_1.shape)
-    print("Temporal data training shape:", trainx_2.shape)
+    print("Spatio-Temporal data training shape:", trainx.shape)
     print("True values Training shape:  ", ytrain.shape)
     print("-"*100)
     print("Val Data: ")
-    print("Regional data Validation shape:", valx_1.shape)
-    print("Temporal data Validation shape:", valx_2.shape)
-    print("True values Validation shape:  ", val_y.shape)
+    print("Spatio-Temporal data Validation shape:", valx.shape)
+    print("True values Validation shape:  ", yval.shape)
     print("-"*100)
     print("Test Data: ")
-    print("Regional data test shape:",testx_1.shape)
-    print("Temporal data test shape:",testx_2.shape)
+    print("Spatio-Temporal data test shape:",testx.shape)
     print("True values test shape:  ",ytest.shape)
     print("-"*100)
 
-    model = CMT.CMT_B()
+    model = CMT.CMT_Ti()
     optimizer = optim.Adam(model.parameters(), lr=LEARN, weight_decay=WEIGHT_DECAY)
     criterion = torch.nn.MSELoss()
-    scheduler = StepLR(optimizer, step_size=100, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=280, gamma=0.1)
 
     # Convert data to PyTorch tensors
-    trainx_1_tensor = torch.tensor(trainx_1, dtype=torch.float32)
-    trainx_2_tensor = torch.tensor(trainx_2, dtype=torch.float32)
+    trainx_tensor = torch.tensor(trainx, dtype=torch.float32)
     ytrain_tensor = torch.tensor(ytrain, dtype=torch.float32)
-    valx_1_tensor = torch.tensor(valx_1, dtype=torch.float32)
-    valx_2_tensor = torch.tensor(valx_2, dtype=torch.float32)
-    yval_tensor = torch.tensor(val_y, dtype=torch.float32)
-    testx_1_tensor = torch.tensor(testx_1, dtype=torch.float32)
-    testx_2_tensor = torch.tensor(testx_2, dtype=torch.float32)
-    ytest_tensor = torch.tensor(ytest, dtype=torch.float32)
+    valx_tensor = torch.tensor(valx, dtype=torch.float32)
+    yval_tensor = torch.tensor(yval, dtype=torch.float32)
+    testx_tensor = torch.tensor(testx, dtype=torch.float32)
 
     # Create DataLoader for batching
-    train_dataset = TensorDataset(trainx_1_tensor, ytrain_tensor)
+    train_dataset = TensorDataset(trainx_tensor, ytrain_tensor)
     train_loader = DataLoader(train_dataset, batch_size=BATCHSIZE, shuffle=True)
-    val_dataset = TensorDataset(valx_1_tensor, yval_tensor)
+    val_dataset = TensorDataset(valx_tensor, yval_tensor)
     val_loader = DataLoader(val_dataset, batch_size=BATCHSIZE, shuffle=True)
     
-    checkpoint_interval = 50  # Save state of model after every 50 epochs
+    checkpoint_interval = 100  # Save state of model after every 100 epochs
     train_loss_dict ={}
     val_loss_dict = {}
     if train:
@@ -159,7 +144,7 @@ def main(train=False):
             avg_val_loss = val_loss / len(val_loader)
             val_loss_dict[epoch+1] = avg_val_loss
 
-            if epoch == 0 or (epoch+1)%50 == 0:
+            if epoch == 0 or (epoch+1)%100 == 0:
                 print(f"\nEpoch: {epoch+1}/{EPOCH} -> Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}, LR: {current_lr}")
 
             if (epoch+1) % checkpoint_interval == 0:
@@ -193,13 +178,13 @@ def main(train=False):
     # Evaluate on validation, test data
     model.eval()
     with torch.no_grad():
-        pred_train = model(trainx_1_tensor).numpy()
-        pred_val = model(valx_1_tensor).numpy()
-        pred_test = model(testx_1_tensor).numpy()
+        pred_train = model(trainx_tensor).numpy()
+        pred_val = model(valx_tensor).numpy()
+        pred_test = model(testx_tensor).numpy()
 
     train_true = ytrain
     train_pred = pred_train
-    val_true = val_y
+    val_true = yval
     val_pred = pred_val
     test_true = ytest
     test_pred = pred_test
@@ -217,7 +202,7 @@ def main(train=False):
 
     print("Training MAE:",mae(train_true,train_pred))
     print("Training RMSE:",math.sqrt(mse(train_true,train_pred)))
-    print("Training MAPE:",MAPE(train_true,train_pred))
+    print("Training MAPE:",MAPE(train_true,train_pred)) #change
     print("Training MAPE2:",MAPE2(train_true,train_pred))
     print("-"*100)
 
@@ -234,7 +219,7 @@ def main(train=False):
 
     print("Validation MAE:", mae(val_true, val_pred))
     print("Validation RMSE:", math.sqrt(mse(val_true, val_pred)))
-    print("Validation MAPE:", MAPE(val_true, val_pred))
+    print("Validation MAPE:", MAPE(val_true, val_pred)) #change
     print("Validation MAPE2:", MAPE2(val_true, val_pred))
     print("-"*100)
 
@@ -251,7 +236,7 @@ def main(train=False):
 
     print("Testing MAE:",mae(test_true,test_pred))
     print("Testing RMSE:",math.sqrt(mse(test_true,test_pred)))
-    print("Testing MAPE:",MAPE(test_true,test_pred))
+    print("Testing MAPE:",MAPE(test_true,test_pred)) #change
     print("Testing MAPE2:",MAPE2(test_true,test_pred))
     print("-"*100)
 
@@ -261,7 +246,7 @@ def main(train=False):
     with torch.no_grad():
         pred_overall = model(region_data_tensor).numpy()
 
-    x = np.linspace(previous_time_input + 1, previous_time_input + len(pred_overall), len(pred_overall))  #Results start from the 5th hour upto x hours
+    x = np.linspace(PREVIOUS_TIMESTEP + 1, PREVIOUS_TIMESTEP + len(pred_overall), len(pred_overall))  #Results start from the 5th hour upto x hours
     
     plt.figure(figsize=(25,5))
     plt.title('ACTUAL VS PREDICTED DEMAND FOR TWO MONTHS',fontsize=24)
@@ -275,7 +260,7 @@ def main(train=False):
 
     print('Overall MAE:',mae(y_true,pred_overall))
     print('Overall RMSE:',math.sqrt(mse(y_true,pred_overall)))
-    print('Overall MAPE:',MAPE(y_true,pred_overall))
+    print('Overall MAPE:',MAPE(y_true,pred_overall)) #change
     print('Overall MAPE2:',MAPE2(y_true,pred_overall))
     print("-"*100)
 
@@ -283,27 +268,26 @@ def main(train=False):
     Hour = 168 # 1 week selected for rolling prediction from the end of the data 
 
     rolling_pred_array = []
-    last4_region = region_data_tensor[-Hour-1:-Hour]
+    last24_region = region_data_tensor[-Hour-1:-Hour]
 
     for i in range(Hour):
-        last4_region = last4_region.reshape(Prediction_TIMESTEP,TIMESTEP_OUR,local_image_size_x, local_image_size_y)
+        last24_region = last24_region.reshape(PREDICTION_TIMESTEP, PREVIOUS_TIMESTEP, local_image_size_x, local_image_size_y)
         model.eval()
         with torch.no_grad():
-            pred = model(last4_region)
+            pred = model(last24_region)
 
         rolling_pred_array.append(pred.numpy().squeeze(0))
 
-        pred = pred.reshape(Prediction_TIMESTEP, local_image_size_x, local_image_size_y)
+        pred = pred.reshape(PREDICTION_TIMESTEP, local_image_size_x, local_image_size_y)
 
         # Remove the oldest hour 
-        last3_region = last4_region[:, Prediction_TIMESTEP:, :, :]
+        last23_region = last24_region[:, PREDICTION_TIMESTEP:, :, :]
         # Append the predicted hour
-        last4_region = torch.cat((last3_region, pred.unsqueeze(0)), axis=1)
-
+        last24_region = torch.cat((last23_region, pred.unsqueeze(0)), axis=1)
 
     rolling_true = y_true[-Hour:,:]
     rolling_pred_array = np.array(rolling_pred_array)
-    
+
     plt.figure(figsize=(25,5))
     plt.title('ACTUAL VS ROLLING PREDICTED DEMAND FOR ONE WEEK',fontsize=24)
     plt.plot(np.sum(rolling_true,axis=1))
@@ -316,7 +300,7 @@ def main(train=False):
 
     print('Rolling MAE:',mae(rolling_true,rolling_pred_array))
     print('Rolling RMSE:',math.sqrt(mse(rolling_true,rolling_pred_array)))
-    print('Rolling MAPE:',MAPE(rolling_true,rolling_pred_array))
+    print('Rolling MAPE:',MAPE(rolling_true,rolling_pred_array)) #change
     print('Rolling MAPE2:',MAPE2(rolling_true,rolling_pred_array))
     print("-"*100)
 

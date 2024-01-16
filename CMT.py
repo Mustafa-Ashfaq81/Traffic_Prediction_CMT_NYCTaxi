@@ -94,11 +94,8 @@ class CMT(nn.Module):
 
         # Final Regression Layer
         self.regression = nn.Linear(
-            1280, Prediction_TIMESTEP * local_image_size_x * local_image_size_y
+            1280, PREDICTION_TIMESTEP * local_image_size_x * local_image_size_y
         )
-
-
-
 
     def forward(self, x):
         # print(f"\nShape before STEM: {x.shape}")
@@ -154,11 +151,27 @@ class CMT(nn.Module):
         # print("Shape after final regression:", logit.shape)
 
         return logit
+    
+# Define He initialization function
+# def init_weights(m):
+#     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+#         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+    
+# class MyLSTM(nn.Module):
+#     def __init__(self, input_size, hidden_size, num_layers, output_size):
+#         super(MyLSTM, self).__init__()
+#         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+#         self.fc = nn.Linear(hidden_size, output_size)
+
+#     def forward(self, x):
+#         out, _ = self.lstm(x)
+#         out = self.fc(out[:, -1, :])  # Take the output from the last time step
+#         return out
 
 
 def CMT_Ti(img_size = 224):
     model = CMT(
-        in_channels = 4,
+        in_channels = 24,
         stem_channel = 16,
         cmt_channel = [46, 92, 184, 368],
         patch_channel = [46, 92, 184, 368],
@@ -170,7 +183,7 @@ def CMT_Ti(img_size = 224):
 
 def CMT_S(img_size = 224):
     model = CMT(
-        in_channels = 4,
+        in_channels = 24,
         stem_channel = 32,
         cmt_channel = [64, 128, 256, 512],
         patch_channel = [64, 128, 256, 512],
@@ -182,7 +195,7 @@ def CMT_S(img_size = 224):
 
 def CMT_B(img_size = 224):
     model = CMT(
-        in_channels = 4,
+        in_channels = 24,
         stem_channel = 38,
         cmt_channel = [76, 152, 304, 608],
         patch_channel = [76, 152, 304, 608],
@@ -195,15 +208,18 @@ def CMT_B(img_size = 224):
 
 def test():
     calc_param = lambda net: sum(p.numel() for p in net.parameters() if p.requires_grad)
-    # img = torch.randn(903, 156, 30, 30) # (Hours(total), Timestep(4), Region(x), Region(y)), (B,C,H,W)
-    img = torch.randn(1416, 4, 30, 30) # (Hours(total), Timestep(4), Region(x), Region(y)), (B,C,H,W)
+    # img = torch.randn(903, 156, 30, 30) # (Hours(total), Timestep(24), Region(x), Region(y)), (B,C,H,W)
+    img = torch.randn(1416, 24, 30, 30) # (Hours(total), Timestep(24), Region(x), Region(y)), (B,C,H,W)
     cmt_ti = CMT_Ti()
     cmt_s = CMT_S()
     cmt_b = CMT_B()
-    out = cmt_s(img)
+    out = cmt_ti(img)
+    # lstm_model = MyLSTM(input_size=900, hidden_size=1024, num_layers=3, output_size=900)
+    # lstm_output = lstm_model(out.unsqueeze(1))
     print("-"*100)
     print(f"Shape of input: {img.shape}")
     print(f"Shape of output: {out.shape}")
+    # print(f"Shape of rnn output: {lstm_output.shape}")
     print("-"*100)
     print(f"CMT_Ti Parameters: {calc_param(cmt_ti) / 1e6 : .2f} M")
     print(f"CMT_S  Parameters: {calc_param(cmt_s) / 1e6 : .2f} M")

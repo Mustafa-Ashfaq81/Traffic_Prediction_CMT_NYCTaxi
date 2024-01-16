@@ -1,11 +1,11 @@
 local_image_size_x = 30
 local_image_size_y = 30
-TIMESTEP_OUR = 4
-Prediction_TIMESTEP = 1
-BATCHSIZE = 512 #1129
+PREVIOUS_TIMESTEP = 24 # 24 hour concatenated previous time input
+PREDICTION_TIMESTEP = 1 # 1 hour prediction
+BATCHSIZE = 256 #1129
 LOSS = 'mse'
 OPTIMIZER = 'adam'
-EPOCH = 200
-LEARN = 1e-04
+EPOCH = 500
+LEARN = 5e-04
 WEIGHT_DECAY = 5e-05
 TRAIN_RATIO = 0.8
