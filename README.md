@@ -59,12 +59,9 @@ The parameters we have used can be found in Param_Our.py. You can play around an
 - Param_Our: Custom module for parameter configurations
 - CMT: Custom module for our CMT model
 
-## Acknowledgments
+## References
 ### [CMT: Convolutional Neural Networks Meet Vision Transformers](https://arxiv.org/abs/2107.06263v2)
-We express gratitude to the authors of "CMT: Convolutional Neural Networks Meet Vision Transformers" for their groundbreaking hybrid network, addressing performance and computational cost gaps between transformers and convolutional neural networks. Their work, particularly the development of CMTs, inspires our use of a CMT model for advanced traffic prediction.
-
 ### [DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction](https://arxiv.org/abs/2108.09091)
-Our gratitude to the authors of "DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction" for their impactful insights on grid-based models and on the utilization of deep learning on spatiotemporal data, has ignited significant interest in urban traffic prediction within the AI and Intelligent Transportation System community.
 
 ## Authors
 - Mustafa Ashfaq 
