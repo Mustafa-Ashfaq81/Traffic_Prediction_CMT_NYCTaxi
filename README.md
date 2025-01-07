@@ -62,7 +62,3 @@ The parameters we have used can be found in Param_Our.py. You can play around an
 ## References
 ### [CMT: Convolutional Neural Networks Meet Vision Transformers](https://arxiv.org/abs/2107.06263v2)
 ### [DL-Traff: Survey and Benchmark of Deep Learning Models for Urban Traffic Prediction](https://arxiv.org/abs/2108.09091)
-
-## Authors
-- Mustafa Ashfaq 
-- Wajiha Naveed
